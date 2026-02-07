@@ -8,7 +8,7 @@ function rand(min, max) {
 
 function moveNoButton() {
   // Move within viewport bounds
-  const padding = 16;
+  const padding = 8;
   const btnRect = noBtn.getBoundingClientRect();
 
   const maxX = window.innerWidth - btnRect.width - padding;
@@ -21,7 +21,7 @@ function moveNoButton() {
   noBtn.style.left = `${x}px`;
   noBtn.style.top = `${y}px`;
 
-  hint.textContent = "Nice try 😄";
+  hint.textContent = "😛💩🤡";
 }
 
 
