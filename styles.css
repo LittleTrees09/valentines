@@ -80,6 +80,10 @@ h1 {
   border: 1px solid rgba(0,0,0,0.12);
 }
 
+#noBtn {
+  z-index: 10;
+}
+
 /* Confetti bits */
 .confetti {
   position: fixed;
