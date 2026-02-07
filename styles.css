@@ -53,6 +53,7 @@ h1 {
   align-items: center;
   position: relative;
   margin: 10px 0 6px;
+  height: 120px; /* movement area height; adjust to taste */
 }
 
 .btn {
