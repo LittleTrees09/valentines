@@ -7,43 +7,21 @@ function rand(min, max) {
 }
 
 function moveNoButton() {
-  const container = document.getElementById("card");
-  const padding = 12;
+  // Move within viewport bounds
+  const padding = 16;
+  const btnRect = noBtn.getBoundingClientRect();
 
-  // Make positioning relative to the card
-  container.style.position = "relative";
-  noBtn.style.position = "absolute";
+  const maxX = window.innerWidth - btnRect.width - padding;
+  const maxY = window.innerHeight - btnRect.height - padding;
 
-  const cRect = container.getBoundingClientRect();
-  const bRect = noBtn.getBoundingClientRect();
+  const x = rand(padding, maxX);
+  const y = rand(padding, maxY);
 
-  // --- Movement zone (smaller than the card) ---
-  // Adjust these to taste:
-  const zoneWidthRatio = 0.60;  // 60% of card width
-  const zoneHeightRatio = 0.35; // 35% of card height
-
-  const zoneW = cRect.width * zoneWidthRatio;
-  const zoneH = cRect.height * zoneHeightRatio;
-
-  // Place the zone roughly around where the buttons are (centered)
-  const zoneLeft = (cRect.width - zoneW) / 2;
-  const zoneTop  = (cRect.height * 0.45); // move zone down/up (0.35-0.55 works well)
-
-  // Clamp zone so it stays inside the card
-  const safeZoneLeft = Math.max(padding, Math.min(zoneLeft, cRect.width - zoneW - padding));
-  const safeZoneTop  = Math.max(padding, Math.min(zoneTop,  cRect.height - zoneH - padding));
-
-  // Compute max positions inside the zone
-  const maxX = safeZoneLeft + zoneW - bRect.width - padding;
-  const maxY = safeZoneTop  + zoneH - bRect.height - padding;
-
-  const x = rand(safeZoneLeft + padding, Math.max(safeZoneLeft + padding, maxX));
-  const y = rand(safeZoneTop + padding,  Math.max(safeZoneTop + padding,  maxY));
-
+  noBtn.style.position = "fixed";
   noBtn.style.left = `${x}px`;
   noBtn.style.top = `${y}px`;
 
-  hint.textContent = "😛💩🤡";
+  hint.textContent = "Nice try 😄";
 }
 
 
