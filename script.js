@@ -103,7 +103,14 @@ window.runYesFlow = function runYesFlow() {
     <div class="emoji" aria-hidden="true">🥰</div>
     <h1>YAYYYYY~~</h1>
     <p class="sub">See you on Valentine’s 💖</p>
-    <p style="opacity:.85;margin-top:16px;">(hihi, pa-send ng screenshot nito, Mahal~ ayayu!!!😌)</p>
+    <p style="opacity:.85;margin-top:16px;">Below ay mga fave pics ko every year natin and I hope dadami pa pictures natin below~</p>
+
+    <div class="mini-actions">
+      <a class="photo-thumb" href="kiss.html" aria-label="Open kiss photo">
+        <img src="kiss.jpeg" alt="Kiss photo thumbnail" />
+      </a>
+      <p class="thumb-note">Click the photo 😉</p>
+    </div>
   `;
 
   const card = document.getElementById("card");
@@ -134,6 +141,8 @@ window.runYesFlow = function runYesFlow() {
 
   overlay.innerHTML = successMarkup;
 };
+
+
 
 // ---------------- One-press YES (pointerdown) ----------------
 function hookYesButtonOnce(btn) {

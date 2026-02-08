@@ -170,3 +170,92 @@ h1 {
 /* Helps mobile taps behave better */
 .btn { touch-action: manipulation; }
 
+/* ---------------- Kiss thumbnail button ---------------- */
+.mini-actions {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+
+.photo-thumb {
+  display: inline-grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.10);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.6);
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+.photo-thumb:active { transform: scale(0.98); }
+
+.photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.thumb-note {
+  font-size: 13px;
+  opacity: 0.75;
+  margin: 0;
+}
+
+/* ---------------- Kiss page layout ---------------- */
+.photo-card {
+  text-align: left;
+}
+
+.photo-top {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.back-btn {
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.photo-frame {
+  margin: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.10);
+  background: rgba(255,255,255,0.55);
+}
+
+.photo-full {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.photo-caption {
+  padding: 10px 12px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.photo-desc {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+.photo-desc h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.photo-desc p {
+  margin: 0 0 10px;
+  line-height: 1.55;
+  opacity: 0.9;
+}
+
