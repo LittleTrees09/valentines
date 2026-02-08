@@ -10,7 +10,7 @@ function rand(min, max) {
 let noMoveCount = 0;
 const NO_MOVE_LIMIT = 2;
 
-// Small, controlled nudge (instead of random teleport)
+// Small, controlled nudge
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
@@ -47,9 +47,8 @@ function lockNoButton() {
 }
 
 function onNoHover() {
-  const step = 40; // "few pixels" — adjust to 20–80
+  const step = 40; // adjust to taste
 
-  // 1st mouse contact: nudge left
   if (noMoveCount === 0) {
     noMoveCount++;
     nudgeNoButton(-step);
@@ -57,7 +56,6 @@ function onNoHover() {
     return;
   }
 
-  // 2nd mouse contact: nudge right, then stop moving forever
   if (noMoveCount === 1) {
     noMoveCount++;
     nudgeNoButton(+step);
@@ -65,19 +63,14 @@ function onNoHover() {
     lockNoButton();
     return;
   }
-
-  // After 2 moves: do nothing
 }
 
 function onNoClick(e) {
-  // Before limit: click acts as a "mobile fallback" (counts as a contact)
   if (noMoveCount < NO_MOVE_LIMIT) {
     e.preventDefault();
     onNoHover();
     return;
   }
-
-  // After limit: clicking NO redirects to gorilla page
   window.location.href = "gorilla.html";
 }
 
@@ -92,13 +85,44 @@ function confettiBurst(count = 120) {
     c.style.transform = `rotate(${rand(0, 360)}deg)`;
     c.style.width = `${rand(6, 12)}px`;
     c.style.height = `${rand(8, 16)}px`;
-
-    // ✅ ensure confetti stays visible above everything (especially on gorilla page)
-    c.style.zIndex = "9999";
-
+    c.style.zIndex = "9999"; // keep above overlay
     document.body.appendChild(c);
     setTimeout(() => c.remove(), 1600);
   }
+}
+
+function buildMoviePickerMarkup() {
+  // placeholders (edit these)
+  const movies = [
+    "insert movie 1",
+    "insert movie 2",
+    "insert movie 3",
+    "insert movie 4",
+    "insert movie 5",
+  ];
+
+  const options = movies
+    .map(
+      (m) => `
+      <label class="movie-option">
+        <input type="radio" name="movie" value="${m}">
+        <span>${m}</span>
+      </label>`
+    )
+    .join("");
+
+  return `
+    <section class="movie-card">
+      <h2 class="movie-title">Pick one movie 🎬</h2>
+      <p class="movie-sub">One choice only ha 😈</p>
+
+      <form id="movieForm" class="movie-form">
+        ${options}
+        <button class="btn yes" type="submit" style="margin-top:12px;">Submit</button>
+        <p class="hint" id="movieHint" style="margin-top:10px;"></p>
+      </form>
+    </section>
+  `;
 }
 
 // Global YES flow so gorilla.html can reuse it
@@ -114,37 +138,34 @@ window.runYesFlow = function runYesFlow() {
 
   const card = document.getElementById("card");
 
-  // ✅ index.html behavior: just update the existing card (confetti stays)
+  // index.html: update existing card
   if (card) {
-    card.innerHTML = successMarkup;
+    card.innerHTML = successMarkup + buildMoviePickerMarkup();
     return;
   }
 
-  // ✅ gorilla.html behavior: DO NOT wipe body (that kills confetti)
-  // Hide the gorilla container if present
+  // gorilla.html: hide gorilla image + show overlay (don’t wipe body or confetti dies)
   const gorillaWrap = document.querySelector(".gorilla-wrap");
   if (gorillaWrap) gorillaWrap.style.display = "none";
 
-  // Add an overlay card on top
   let overlay = document.getElementById("successOverlay");
   if (!overlay) {
     overlay = document.createElement("main");
     overlay.id = "successOverlay";
     overlay.className = "card";
     overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.margin = "auto";
-    overlay.style.height = "fit-content";
-    overlay.style.maxWidth = "min(520px, 92vw)";
+    overlay.style.left = "50%";
+    overlay.style.top = "45%";
+    overlay.style.transform = "translate(-50%, -50%)";
     overlay.style.zIndex = "9000";
-    overlay.style.display = "block";
+    overlay.style.width = "min(520px, 92vw)";
     document.body.appendChild(overlay);
   }
 
-  overlay.innerHTML = successMarkup;
+  overlay.innerHTML = successMarkup + buildMoviePickerMarkup();
 };
 
-// ---------------- One-press YES (pointerdown to avoid "double click") ----------------
+// ---------------- One-press YES (pointerdown) ----------------
 function hookYesButtonOnce(btn) {
   if (!btn) return;
 
@@ -155,17 +176,13 @@ function hookYesButtonOnce(btn) {
     if (btn.dataset.clicked === "1") return;
     btn.dataset.clicked = "1";
 
-    // Prevent repeat presses without using :disabled (avoids CSS jumps)
     btn.style.pointerEvents = "none";
     btn.blur?.();
 
     window.runYesFlow();
   };
 
-  // First contact works for mouse + touch
   btn.addEventListener("pointerdown", fireOnce, { once: true });
-
-  // Fallback (some browsers still fire click separately)
   btn.addEventListener("click", fireOnce, { once: true });
 }
 
@@ -178,3 +195,43 @@ if (noBtn) {
   noBtn.addEventListener("mouseenter", onNoHover);
   noBtn.addEventListener("click", onNoClick);
 }
+
+// ---------------- Save movie choice to .txt (server endpoint) ----------------
+document.addEventListener("submit", async (e) => {
+  if (e.target?.id !== "movieForm") return;
+
+  e.preventDefault();
+
+  const form = e.target;
+  const movieHint = document.getElementById("movieHint");
+  const picked = form.querySelector('input[name="movie"]:checked');
+
+  if (!picked) {
+    if (movieHint) movieHint.textContent = "Pick one movie first 🙂";
+    return;
+  }
+
+  // lock so she can only choose once
+  if (form.dataset.submitted === "1") return;
+  form.dataset.submitted = "1";
+  form.querySelectorAll("input, button").forEach((el) => (el.disabled = true));
+
+  try {
+    const res = await fetch("/save-movie", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ movie: picked.value }),
+    });
+
+    const data = await res.json();
+
+    if (data.ok) {
+      if (movieHint) movieHint.textContent = `Saved! You picked: ${picked.value} 💖`;
+    } else {
+      if (movieHint) movieHint.textContent = `Could not save: ${data.error || "error"}`;
+    }
+  } catch {
+    if (movieHint) movieHint.textContent = "Could not save (server not running).";
+  }
+});
+
