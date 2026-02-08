@@ -2,10 +2,6 @@ const yesBtn = document.getElementById("yesBtn");
 const noBtn = document.getElementById("noBtn");
 const hint = document.getElementById("hint");
 
-// ✅ Google Apps Script Web App endpoint
-const GOOGLE_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbyWtPAc3mecrppjrJTgoCfW9DdpyMlWe2C-5TubC9aweU4JMjaL8OZghe0YGXKcjfYKgA/exec";
-
 function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
@@ -26,6 +22,7 @@ function nudgeNoButton(dx) {
   const bw = rect.width;
   const bh = rect.height;
 
+  // If left/top haven't been set yet, start from current rendered position
   const currentLeft = Number.parseFloat(noBtn.style.left);
   const currentTop = Number.parseFloat(noBtn.style.top);
   const x0 = Number.isFinite(currentLeft) ? currentLeft : rect.left;
@@ -50,8 +47,9 @@ function lockNoButton() {
 }
 
 function onNoHover() {
-  const step = 40;
+  const step = 40; // adjust to taste (20–80)
 
+  // 1st contact: nudge left
   if (noMoveCount === 0) {
     noMoveCount++;
     nudgeNoButton(-step);
@@ -59,6 +57,7 @@ function onNoHover() {
     return;
   }
 
+  // 2nd contact: nudge right, then stop moving forever
   if (noMoveCount === 1) {
     noMoveCount++;
     nudgeNoButton(+step);
@@ -69,11 +68,14 @@ function onNoHover() {
 }
 
 function onNoClick(e) {
+  // Before limit: click acts as a "mobile fallback" (counts as a contact)
   if (noMoveCount < NO_MOVE_LIMIT) {
     e.preventDefault();
     onNoHover();
     return;
   }
+
+  // After limit: clicking NO redirects to gorilla page
   window.location.href = "gorilla.html";
 }
 
@@ -88,45 +90,12 @@ function confettiBurst(count = 120) {
     c.style.transform = `rotate(${rand(0, 360)}deg)`;
     c.style.width = `${rand(6, 12)}px`;
     c.style.height = `${rand(8, 16)}px`;
-    c.style.zIndex = "9999";
     document.body.appendChild(c);
     setTimeout(() => c.remove(), 1600);
   }
 }
 
-function buildMoviePickerMarkup() {
-  const movies = [
-    "insert movie 1",
-    "insert movie 2",
-    "insert movie 3",
-    "insert movie 4",
-    "insert movie 5",
-  ];
-
-  const options = movies
-    .map(
-      (m) => `
-      <label class="movie-option">
-        <input type="radio" name="movie" value="${m}">
-        <span>${m}</span>
-      </label>`
-    )
-    .join("");
-
-  return `
-    <section class="movie-card">
-      <h2 class="movie-title">Pick one movie 🎬</h2>
-      <p class="movie-sub">One choice only ha 😈</p>
-
-      <form id="movieForm" class="movie-form">
-        ${options}
-        <button class="btn yes" type="submit" style="margin-top:12px;">Submit</button>
-        <p class="hint" id="movieHint" style="margin-top:10px;"></p>
-      </form>
-    </section>
-  `;
-}
-
+// Global YES flow so gorilla.html can reuse it
 window.runYesFlow = function runYesFlow() {
   confettiBurst();
 
@@ -139,11 +108,13 @@ window.runYesFlow = function runYesFlow() {
 
   const card = document.getElementById("card");
 
+  // index.html: update existing card
   if (card) {
-    card.innerHTML = successMarkup + buildMoviePickerMarkup();
+    card.innerHTML = successMarkup;
     return;
   }
 
+  // gorilla.html: hide gorilla image + show overlay (don’t wipe body or confetti dies)
   const gorillaWrap = document.querySelector(".gorilla-wrap");
   if (gorillaWrap) gorillaWrap.style.display = "none";
 
@@ -161,7 +132,7 @@ window.runYesFlow = function runYesFlow() {
     document.body.appendChild(overlay);
   }
 
-  overlay.innerHTML = successMarkup + buildMoviePickerMarkup();
+  overlay.innerHTML = successMarkup;
 };
 
 // ---------------- One-press YES (pointerdown) ----------------
@@ -181,77 +152,18 @@ function hookYesButtonOnce(btn) {
     window.runYesFlow();
   };
 
+  // pointerdown fixes "needs multiple clicks" on some devices
   btn.addEventListener("pointerdown", fireOnce, { once: true });
   btn.addEventListener("click", fireOnce, { once: true });
 }
 
+// Hook YES buttons if present
 hookYesButtonOnce(yesBtn);
 hookYesButtonOnce(document.getElementById("gorillaYes"));
 
+// Hook NO only on main page
 if (noBtn) {
   noBtn.addEventListener("mouseenter", onNoHover);
   noBtn.addEventListener("click", onNoClick);
 }
-
-// ---------------- Save movie choice to Google Sheets (JSONP, works on GitHub) ----------------
-function saveMovieJSONP(movie, onDone) {
-  const cbName = `__movieCB_${Date.now()}_${Math.floor(Math.random() * 1e6)}`;
-
-  // callback called by Apps Script
-  window[cbName] = (data) => {
-    try { onDone(null, data); } finally {
-      delete window[cbName];
-      script.remove();
-    }
-  };
-
-  const script = document.createElement("script");
-  const url =
-    `${GOOGLE_ENDPOINT}?movie=${encodeURIComponent(movie)}&callback=${encodeURIComponent(cbName)}`;
-
-  script.src = url;
-  script.onerror = () => {
-    delete window[cbName];
-    script.remove();
-    onDone(new Error("JSONP load failed"), null);
-  };
-
-  document.body.appendChild(script);
-}
-
-document.addEventListener("submit", (e) => {
-  if (e.target?.id !== "movieForm") return;
-  e.preventDefault();
-
-  const form = e.target;
-  const movieHint = document.getElementById("movieHint");
-  const picked = form.querySelector('input[name="movie"]:checked');
-
-  if (!picked) {
-    if (movieHint) movieHint.textContent = "Pick one movie first 🙂";
-    return;
-  }
-
-  if (form.dataset.submitted === "1") return;
-  form.dataset.submitted = "1";
-  form.querySelectorAll("input, button").forEach((el) => (el.disabled = true));
-
-  saveMovieJSONP(picked.value, (err, data) => {
-    if (err) {
-      if (movieHint) movieHint.textContent = "Not saved: endpoint error.";
-      form.dataset.submitted = "0";
-      form.querySelectorAll("input, button").forEach((el) => (el.disabled = false));
-      return;
-    }
-
-    if (data && data.ok === true) {
-      if (movieHint) movieHint.textContent = `Saved! You picked: ${picked.value} 💖`;
-      return;
-    }
-
-    if (movieHint) movieHint.textContent = `Not saved: ${data?.error || "unknown error"}`;
-    form.dataset.submitted = "0";
-    form.querySelectorAll("input, button").forEach((el) => (el.disabled = false));
-  });
-});
 
