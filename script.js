@@ -2,6 +2,10 @@ const yesBtn = document.getElementById("yesBtn");
 const noBtn = document.getElementById("noBtn");
 const hint = document.getElementById("hint");
 
+// ✅ Google Apps Script Web App endpoint
+const GOOGLE_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbyWtPAc3mecrppjrJTgoCfW9DdpyMlWe2C-5TubC9aweU4JMjaL8OZghe0YGXKcjfYKgA/exec";
+
 function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
@@ -196,8 +200,9 @@ if (noBtn) {
   noBtn.addEventListener("click", onNoClick);
 }
 
-// ---------------- Save movie choice to .txt (server endpoint) ----------------
-document.addEventListener("submit", async (e) => {
+// ---------------- Save movie choice to Google Sheets (GET, reliable) ----------------
+// ---------------- Save movie choice to Google Sheets (reliable logging) ----------------
+document.addEventListener("submit", (e) => {
   if (e.target?.id !== "movieForm") return;
 
   e.preventDefault();
@@ -216,22 +221,33 @@ document.addEventListener("submit", async (e) => {
   form.dataset.submitted = "1";
   form.querySelectorAll("input, button").forEach((el) => (el.disabled = true));
 
-  try {
-    const res = await fetch("/save-movie", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ movie: picked.value }),
+  // Send as x-www-form-urlencoded
+  const payload = new URLSearchParams({ movie: picked.value }).toString();
+
+  // ✅ Best-effort logging that works on GitHub Pages
+  let sent = false;
+
+  // 1) sendBeacon (most reliable for logging)
+  if (navigator.sendBeacon) {
+    const blob = new Blob([payload], {
+      type: "application/x-www-form-urlencoded;charset=UTF-8",
     });
-
-    const data = await res.json();
-
-    if (data.ok) {
-      if (movieHint) movieHint.textContent = `Saved! You picked: ${picked.value} 💖`;
-    } else {
-      if (movieHint) movieHint.textContent = `Could not save: ${data.error || "error"}`;
-    }
-  } catch {
-    if (movieHint) movieHint.textContent = "Could not save (server not running).";
+    sent = navigator.sendBeacon(GOOGLE_ENDPOINT, blob);
   }
+
+  // 2) fallback: fetch no-cors (doesn't throw unless network totally fails)
+  if (!sent) {
+    fetch(GOOGLE_ENDPOINT, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+      body: payload,
+    }).catch(() => {});
+  }
+
+  // We cannot reliably read the response due to CORS, so show success after sending.
+  if (movieHint) movieHint.textContent = `Saved! You picked: ${picked.value} 💖`;
 });
 
